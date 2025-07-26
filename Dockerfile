@@ -15,7 +15,7 @@ RUN go mod download
 COPY . .
 
 # Build the specific service binary
-RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /app/bin/service ./cmd/${promotion-service}/main.go
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /app/bin/service ./cmd/main.go
 
 
 # ---- Stage 2: Runner ----
