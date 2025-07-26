@@ -2,6 +2,7 @@ package interfaces
 
 import (
 	"encoding/json"
+	"github.com/wangyingjie930/nexus-pkg/logger"
 	"github.com/wangyingjie930/nexus-promotion/internal/application"
 	"github.com/wangyingjie930/nexus-promotion/internal/domain"
 	"net/http"
@@ -167,6 +168,8 @@ func (h *PromotionHandler) GetApplicableCoupons(w http.ResponseWriter, r *http.R
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	logger.Ctx(r.Context()).Info().Any("fact", fact).Send()
 
 	resp, err := h.promoService.GetApplicableCoupons(r.Context(), &fact, userID)
 	if err != nil {

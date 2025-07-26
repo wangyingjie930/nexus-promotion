@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"fmt"
+	"github.com/wangyingjie930/nexus-pkg/logger"
 	"github.com/wangyingjie930/nexus-promotion/internal/domain"
 	"github.com/wangyingjie930/nexus-promotion/internal/infrastructure/discount"
 	"github.com/wangyingjie930/nexus-promotion/internal/infrastructure/rule"
@@ -33,7 +34,10 @@ func NewPromotionService(
 	couponRepo domain.CouponRepository,
 	tracer trace.Tracer,
 ) PromotionService {
-	engine, _ := rule.NewCelRuleEngine()
+	engine, err := rule.NewCelRuleEngine()
+	if err != nil {
+		logger.Ctx(context.Background()).Fatal().Err(err).Send()
+	}
 	return &promotionServiceImpl{
 		uow:          uow,
 		templateRepo: templateRepo,

@@ -16,9 +16,9 @@ type PromotionTemplateModel struct {
 	PromotionType   string `gorm:"type:varchar(50);not null;comment:促销类型, 如 'STORE_COUPON', 'PLATFORM_SALE'"`
 
 	// --- 核心规则与策略字段 ---
-	RuleDefinition     string `gorm:"type:json;comment:规则定义(LHS), 存储JSON格式的适用条件"`                                  // [cite: 199]
+	RuleDefinition     string `gorm:"type:text;comment:规则定义(LHS)"`                                                 // [cite: 199]
 	DiscountType       string `gorm:"type:varchar(50);not null;comment:优惠类型(RHS), 如 'FIXED_AMOUNT', 'PERCENTAGE'"` // [cite: 189]
-	DiscountProperties string `gorm:"type:json;comment:优惠策略需要的参数, 如满减门槛、折扣率等"`
+	DiscountProperties string `gorm:"type:text;comment:优惠策略需要的参数, 如满减门槛、折扣率等"`
 
 	// --- 生命周期与元数据 ---
 	StartDate   time.Time `gorm:"comment:活动生效时间"`

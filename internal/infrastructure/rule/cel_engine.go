@@ -3,8 +3,9 @@ package rule
 
 import (
 	"fmt"
-	"github.com/wangyingjie930/nexus-promotion/internal/domain"
 	"sync"
+
+	"github.com/wangyingjie930/nexus-promotion/internal/domain"
 
 	"github.com/google/cel-go/cel"
 )
@@ -18,12 +19,10 @@ type CelRuleEngine struct {
 // NewCelRuleEngine 创建并初始化一个新的 CEL 规则引擎
 // 这是大厂实践中的标准做法：预先定义好环境和类型，确保类型安全和性能。
 func NewCelRuleEngine() (domain.RuleEngine, error) {
-	// 1. 创建 CEL 环境，并声明 fact 变量的类型。
-	// 这一步是关键，它让 CEL 具备了静态类型检查的能力，能识别 domain.Fact 的所有字段。
 	env, err := cel.NewEnv(
-		// 必须告诉 CEL `domain.Fact` 这个结构体的存在
-		cel.Types(&domain.Fact{}, &domain.UserContext{}, &domain.CartItem{}, &domain.EnvironmentContext{}),
-		// 声明一个名为 `fact` 的变量，其类型为我们刚注册的 `domain.Fact`
+		// 注册 domain.Fact 类型
+		cel.Types(&domain.Fact{}),
+		// 声明 fact 变量
 		cel.Variable("fact", cel.ObjectType("domain.Fact")),
 	)
 	if err != nil {
