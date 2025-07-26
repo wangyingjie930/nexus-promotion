@@ -27,12 +27,21 @@ PID_FILE="$SCRIPT_DIR/${SERVICE_NAME}.pid"
 export JAEGER_ENDPOINT="http://jaeger.infra:14268/api/traces"
 export KAFKA_BROKERS="kafka-service.infra:9092"
 export NACOS_SERVER_ADDRS="nacos.infra:8848"
+export ORDER_SERVICE_BASE_URL="http://localhost:8081"
+export FRAUD_DETECTION_SERVICE_URL="http://localhost:8085/check"
+export INVENTORY_SERVICE_URL="http://localhost:8082"
+export INVENTORY_RELEASE_URL="http://localhost:8082/release_stock"
+export INVENTORY_RESERVE_URL="http://localhost:8082/reserve_stock"
+export NOTIFICATION_SERVICE_URL="http://localhost:8083"
+export PRICING_SERVICE_URL="http://localhost:8084/calculate_price"
+export PROMOTION_SERVICE_URL="http://localhost:8087/get_promo_price"
+export SHIPPING_SERVICE_URL="http://localhost:8086/get_quote"
 export DB_SOURCE="root:root@tcp(mysql.infra:3306)/test"
 export REDIS_ADDR="redis.infra:6379"
 export ZK_SERVERS="zookeeper-headless.infra:2181"
 export REDIS_ADDRS="redis-cluster-0.redis-cluster-headless.infra:6379,redis-cluster-1.redis-cluster-headless.infra:6379,redis-cluster-2.redis-cluster-headless.infra:6379"
-export NACOS_NAMESPACE="d586122c-170f-40e9-9d17-5cede728cd7e"
-export NACOS_GROUP="nexus-group"
+export NACOS_NAMESPACE="d586122c-170f-40e9-9d17-5cede728cd7e" # 假设这是开发环境的Namespace ID
+export NACOS_GROUP="nexus-group"   # 为项目所有服务定义一个统一的分组
 
 # 创建必要的目录
 mkdir -p "$LOG_DIR"
