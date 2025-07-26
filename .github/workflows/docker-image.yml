@@ -1,53 +1,121 @@
 # .github/workflows/docker-image.yml
 
-name: Docker Image CI on Tag
+name: Test, Build and Push Docker Image
 
-# 1. 触发条件：只在推送 'v' 开头的 tag 时触发 (例如 v1.0.0, v1.2.3)
+# 1. 触发条件:
+#    - 推送到 main 分支时触发
+#    - 推送 'v' 开头的 tag 时触发 (例如 v1.0.0, v1.2.3)
 on:
   push:
+    branches:
+      - 'main'
     tags:
-      - 'v*' # 匹配所有以 'v' 开头的标签
+      - 'v*'
 
 jobs:
-  build-and-push:
+  # --- 新增的测试作业 ---
+  test:
     runs-on: ubuntu-latest # 使用最新的 Ubuntu 虚拟机环境
+
+    # 定义服务容器，这里我们启动一个 MySQL 服务
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: test
+        ports:
+          - 3306:3306
+        # 健康检查，确保 MySQL 服务完全准备好接受连接
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
 
     steps:
       # 2. 检出代码
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 3. 设置 Docker Buildx
+      # 3. 设置 Go 环境
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.24' # 与 go.mod 文件中的版本匹配
+
+      # 4. 准备测试数据库
+      - name: Setup test database
+        run: |
+          # 等待 MySQL 服务准备就绪
+          echo "Waiting for MySQL to start..."
+          # 这里我们使用 mysql-client 来执行种子脚本
+          sudo apt-get update && sudo apt-get install -y mysql-client
+          # 使用种子数据初始化测试数据库
+          mysql -h 127.0.0.1 -P 3306 -u root -proot test < ./scripts/sql/test_seed.sql
+          echo "Database seeded successfully."
+        # 为测试代码设置数据库连接 DSN 环境变量
+        # 注意: 这里的 DSN 主机地址要与服务容器的地址(127.0.0.1)匹配
+        env:
+          # 这行是关键，但由于您的测试代码是硬编码的，所以我们通过服务端口映射来解决
+          # 如果未来将DSN改为从环境变量读取，则可以启用此行:
+          # TEST_DB_DSN: "root:root@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=True&loc=Local"
+          pass: "" # 占位
+
+      # 5. 安装依赖
+      - name: Install Dependencies
+        run: go mod tidy && go mod download
+
+      # 6. 运行测试
+      - name: Run Go tests
+        # 运行项目下的所有测试
+        # 注意：测试代码中连接的是 mysql.infra，在 GitHub Actions 环境中无法直接解析。
+        # 幸运的是，GORM/MySQL驱动在无法解析主机名时，会尝试将其作为本地套接字路径，
+        # 并且您的 start.sh 中也设置了 `DB_SOURCE="root:root@tcp(mysql.infra:3306)/test"`
+        # 但在CI环境中，我们需要确保能够连接。
+        # 一个更健壮的方法是修改您的测试代码，使其从环境变量中读取DSN。
+        # 作为临时的解决方法，我们可以利用 /etc/hosts 来映射。
+        run: |
+          # 将 mysql.infra 指向本地回环地址，测试代码无需修改即可连接到服务容器
+          echo "127.0.0.1 mysql.infra" | sudo tee -a /etc/hosts
+          go test -v ./...
+
+  # --- 原有的构建与推送作业 ---
+  build-and-push:
+    # 依赖于 test 作业，确保测试通过后才执行
+    needs: test
+    runs-on: ubuntu-latest
+
+    # 仅在推送的是一个 git tag 时才运行此作业
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # 4. 登录到你的容器镜像仓库 (例如 Docker Hub)
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 5. 为镜像生成元数据 (核心修改点)
-      #    这里的配置会确保 Docker 镜像的 tag 和 Git 的 tag 完全一样
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5
         with:
-          # 替换成你的 Docker Hub 用户名 / 组织名
-          images: yingjiewang/nexus-promotion
+          images: yingjiewang/nexus-promotion # 替换成您的 Docker Hub 用户名/组织名
           tags: |
-            # type=ref,event=tag 会自动提取 Git 标签名作为 Docker 标签
-            # 例如, 当你推送一个名为 v1.2.3 的 Git 标签时,
-            # 这个步骤会生成一个 Docker 标签: v1.2.3
             type=ref,event=tag
-
-      # 6. 构建并推送镜像
+            type=schedule
+            type=raw,value=latest,enable={{is_default_branch}}
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
           context: .
-          push: true # 因为只有在打tag时才运行，所以总是推送
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
