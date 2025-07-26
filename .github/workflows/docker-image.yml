@@ -35,7 +35,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           # 替换成你的 Docker Hub 用户名 / 组织名
-          images: your-dockerhub-username/nexus-promotion
+          images: yingjiewang/nexus-promotion
           tags: |
             # type=ref,event=tag 会自动提取 Git 标签名作为 Docker 标签
             # 例如, 当你推送一个名为 v1.2.3 的 Git 标签时,
