@@ -287,6 +287,11 @@ func (s *promotionServiceImpl) GetApplicableCoupons(ctx context.Context, fact *d
 			// 使用规则引擎评估LHS
 			satisfied, err := s.ruleEngine.Evaluate(template.RuleDefinition, *fact)
 			if err != nil || !satisfied {
+				logger.Ctx(gCtx).Warn().
+					Err(err).
+					Str("rule", template.RuleDefinition).
+					Int64("couponID", c.ID).
+					Msg("Rule evaluation failed")
 				return nil // 规则不满足
 			}
 

@@ -3,6 +3,8 @@ package rule
 
 import (
 	"fmt"
+	"github.com/google/cel-go/ext"
+	"reflect"
 	"sync"
 
 	"github.com/wangyingjie930/nexus-promotion/internal/domain"
@@ -21,7 +23,9 @@ type CelRuleEngine struct {
 func NewCelRuleEngine() (domain.RuleEngine, error) {
 	env, err := cel.NewEnv(
 		// 注册 domain.Fact 类型
-		cel.Types(&domain.Fact{}),
+		ext.NativeTypes(
+			reflect.TypeOf(domain.Fact{}), reflect.TypeOf(domain.UserContext{}),
+			reflect.TypeOf(domain.CartItem{}), reflect.TypeOf(domain.EnvironmentContext{})),
 		// 声明 fact 变量
 		cel.Variable("fact", cel.ObjectType("domain.Fact")),
 	)
