@@ -46,7 +46,7 @@ func main() {
 			// 4. **创建应用服务实例 (应用层)**
 			// 将仓储接口注入到应用服务中
 			tracer := otel.Tracer(serviceName)
-			promoService := application.NewPromotionService(templateRepo, couponRepository, tracer)
+			promoService := application.NewPromotionService(infrastructure.NewGormUnitOfWork(db), templateRepo, couponRepository, tracer)
 
 			// 5. **创建HTTP处理器 (接口层)**
 			// 将应用服务注入到HTTP处理器中

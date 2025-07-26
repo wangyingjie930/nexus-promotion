@@ -18,6 +18,7 @@ import (
 
 // promotionServiceImpl 是 PromotionService 的实现
 type promotionServiceImpl struct {
+	uow          domain.UnitOfWork
 	templateRepo domain.PromotionTemplateRepository
 	couponRepo   domain.CouponRepository
 	ruleEngine   domain.RuleEngine
@@ -27,12 +28,14 @@ type promotionServiceImpl struct {
 
 // NewPromotionService 创建一个新的 PromotionService 实例
 func NewPromotionService(
+	uow domain.UnitOfWork,
 	templateRepo domain.PromotionTemplateRepository,
 	couponRepo domain.CouponRepository,
 	tracer trace.Tracer,
 ) PromotionService {
 	engine, _ := rule.NewCelRuleEngine()
 	return &promotionServiceImpl{
+		uow:          uow,
 		templateRepo: templateRepo,
 		couponRepo:   couponRepo,
 		ruleEngine:   engine,                        // 直接实例化基础设施层的具体实现
@@ -72,6 +75,9 @@ func (s *promotionServiceImpl) CreatePromotionTemplate(ctx context.Context, req 
 
 // UpdatePromotionTemplate 通过创建新版本来实现更新，遵循不可变性原则 [cite: 217, 218]
 func (s *promotionServiceImpl) UpdatePromotionTemplate(ctx context.Context, req *UpdateTemplateRequest) (*TemplateResponse, error) {
+	ctx, span := s.tracer.Start(ctx, "application.CreatePromotionTemplate")
+	defer span.End()
+
 	// 1. 找到最新的版本
 	latest, err := s.templateRepo.FindLatestByGroupID(ctx, req.TemplateGroupID)
 	if err != nil {
@@ -81,15 +87,6 @@ func (s *promotionServiceImpl) UpdatePromotionTemplate(ctx context.Context, req 
 		return nil, fmt.Errorf("promotion template group with ID %s not found", req.TemplateGroupID)
 	}
 
-	// 2. 停用旧版本 (如果当前是激活的)
-	if latest.IsActive {
-		latest.IsActive = false
-		if err := s.templateRepo.Update(ctx, latest); err != nil {
-			return nil, err
-		}
-	}
-
-	// 3. 创建新版本
 	newVersion := &domain.PromotionTemplate{
 		TemplateGroupID:    latest.TemplateGroupID,
 		Version:            latest.Version + 1, // 版本号递增
@@ -106,8 +103,23 @@ func (s *promotionServiceImpl) UpdatePromotionTemplate(ctx context.Context, req 
 		IsActive:           true, // 新版本默认为激活状态
 	}
 
-	if err := s.templateRepo.Create(ctx, newVersion); err != nil {
-		// 理想情况下这里应该有事务回滚
+	err = s.uow.Execute(ctx, func(repoProvider domain.RepositoryProvider) error {
+		// 2. 停用旧版本 (如果当前是激活的)
+		if latest.IsActive {
+			latest.IsActive = false
+			if err := s.templateRepo.Update(ctx, latest); err != nil {
+				return err
+			}
+		}
+
+		if err := s.templateRepo.Create(ctx, newVersion); err != nil {
+			// 理想情况下这里应该有事务回滚
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		span.RecordError(err)
 		return nil, err
 	}
 
