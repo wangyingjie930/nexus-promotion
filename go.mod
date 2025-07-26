@@ -1,12 +1,14 @@
 module github.com/wangyingjie930/nexus-promotion
 
-go 1.24.5
+go 1.24.0
 
 require (
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/google/cel-go v0.26.0
 	github.com/google/uuid v1.6.0
+	github.com/wangyingjie930/nexus-pkg v0.1.2
 	go.opentelemetry.io/otel v1.37.0
+	go.opentelemetry.io/otel/trace v1.37.0
 	golang.org/x/sync v0.16.0
 	gorm.io/driver/mysql v1.6.0
 	gorm.io/gorm v1.30.1
@@ -65,12 +67,10 @@ require (
 	github.com/rs/zerolog v1.34.0 // indirect
 	github.com/stoewer/go-strcase v1.2.0 // indirect
 	github.com/tjfoc/gmsm v1.4.1 // indirect
-	github.com/wangyingjie930/nexus-pkg v0.1.1 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/otel/exporters/jaeger v1.17.0 // indirect
 	go.opentelemetry.io/otel/metric v1.37.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.37.0 // indirect
-	go.opentelemetry.io/otel/trace v1.37.0 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.21.0 // indirect
